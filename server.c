@@ -6,7 +6,7 @@
 /*   By: mcardoso <mcardoso@student.42lisboa.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 15:16:00 by jomaia            #+#    #+#             */
-/*   Updated: 2025/09/17 20:11:16 by mcardoso         ###   ########.fr       */
+/*   Updated: 2025/09/18 17:17:01 by mcardoso         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,18 @@ static void	print_reset(t_data *data)
 	data->str = NULL;
 	data->bits_len = 31;
 	data->len = 0;
+	data->pos = 0;
+}
+
+static void	handle_empty(t_data *data, pid_t pid)
+{
+	ft_printf("\n");
+	kill(pid, SIGUSR2);
+	data->c = 0;
+	data->len = 0;
+	data->pos = 0;
+	data->bits_len = 31;
+	data->i = 7;
 }
 
 static int	add_char_to_msg(t_data *data)
@@ -30,7 +42,8 @@ static int	add_char_to_msg(t_data *data)
 			exit(1);
 		data->pos = 0;
 	}
-	data->str[data->pos++] = data->c;
+	if (data->pos < data->len)
+		data->str[data->pos++] = data->c;
 	data->c = 0;
 	data->i = 7;
 	if (data->pos == data->len)
@@ -48,7 +61,12 @@ void	handler(int sig, siginfo_t *info, void *context)
 
 	(void)context;
 	if (data.bits_len >= 0)
-		data.len |= ((sig == SIGUSR2) << data.bits_len--);
+	{
+		if (sig == SIGUSR2)
+			data.len |= (1 << data.bits_len);
+		if (--data.bits_len < 0 && data.len == 0)
+			return (handle_empty(&data, info->si_pid), (void)0);
+	}
 	else
 	{
 		if (sig == SIGUSR2)
